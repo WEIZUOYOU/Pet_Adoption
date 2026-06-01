@@ -1,8 +1,10 @@
 package com.pet.adoption.controller;
 
 import com.pet.adoption.common.Result;
+import com.pet.adoption.common.SessionUtils;
 import com.pet.adoption.dto.LoginRequest;
 import com.pet.adoption.dto.RegisterRequest;
+import com.pet.adoption.entity.User;
 import com.pet.adoption.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,7 +27,7 @@ public class UserController {
         return userService.register(request);
     }
 
-    @Operation(summary = "用户登录", description = "用户登录接口，成功后会在session中保存用户信息")
+    @Operation(summary = "用户登录", description = "用户登录接口，支持账号或手机号登录，成功后会在session中保存用户信息")
     @PostMapping("/login")
     public Result login(@RequestBody LoginRequest request, HttpSession session) {
         return userService.login(request, session);
@@ -35,5 +37,16 @@ public class UserController {
     @GetMapping("/logout")
     public Result logout(HttpSession session) {
         return userService.logout(session);
+    }
+
+    @Operation(summary = "获取当前登录用户信息")
+    @GetMapping("/current")
+    public Result getCurrentUser(HttpSession session) {
+        User user = SessionUtils.getUser(session);
+        if (user == null) {
+            return Result.error(401, "未登录");
+        }
+        // 返回用户信息（密码已为null）
+        return Result.success(user);
     }
 }

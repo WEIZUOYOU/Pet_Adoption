@@ -8,6 +8,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. 创建数据库
 CREATE DATABASE IF NOT EXISTS pet_adoption
+DEFAULT CHARACTER SET utf8mb4
+DEFAULT COLLATE utf8mb4_unicode_ci;
 
 USE pet_adoption;
 
@@ -28,7 +30,7 @@ CREATE TABLE user (
     status    INT          DEFAULT 0 COMMENT '0正常 1禁用'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
--- 4. 宠物表（使用英文默认值，避免中文字符集问题）
+-- 4. 宠物表
 CREATE TABLE pet (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(50)  NOT NULL,
@@ -38,7 +40,7 @@ CREATE TABLE pet (
     image       VARCHAR(255) DEFAULT NULL,
     description TEXT         DEFAULT NULL,
     health      VARCHAR(100) DEFAULT NULL,
-    status      VARCHAR(20)  DEFAULT 'available' COMMENT 'available/adopted/offline',
+    status      VARCHAR(20)  DEFAULT '待领养' COMMENT '待领养/已领养/下架',
     add_time    DATETIME     DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宠物信息表';
 
@@ -49,7 +51,7 @@ CREATE TABLE adoption (
     user_id     INT          NOT NULL,
     reason      TEXT         DEFAULT NULL,
     address     VARCHAR(200) DEFAULT NULL,
-    status      VARCHAR(20)  DEFAULT 'pending' COMMENT 'pending/approved/rejected',
+    status      VARCHAR(20)  DEFAULT '待审核' COMMENT '待审核/通过/驳回/已撤回',
     apply_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
     audit_time  DATETIME     DEFAULT NULL,
     FOREIGN KEY (pet_id)  REFERENCES pet(id)  ON DELETE CASCADE,
@@ -76,9 +78,9 @@ VALUES ('testuser', 'e10adc3949ba59abbe56e057f20f883e', '爱宠人士', '1380013
 
 INSERT INTO pet (name, species, breed, age, image, description, health, status)
 VALUES
-('小白', '猫', '英短', 2, '/images/pet1.jpg', '性格温顺，已驱虫', '健康', 'available'),
-('旺财', '狗', '金毛', 3, '/images/pet2.jpg', '活泼好动，会基本指令', '良好', 'available'),
-('小黄', '猫', '橘猫', 1, '/images/pet3.jpg', '小橘猫一只，爱吃爱睡', '健康', 'available');
+('小白', '猫', '英短', 2, '/images/pet1.jpg', '性格温顺，已驱虫', '健康', '待领养'),
+('旺财', '狗', '金毛', 3, '/images/pet2.jpg', '活泼好动，会基本指令', '良好', '待领养'),
+('小黄', '猫', '橘猫', 1, '/images/pet3.jpg', '小橘猫一只，爱吃爱睡', '健康', '待领养');
 
 -- 8. 恢复外键检查
 SET FOREIGN_KEY_CHECKS = 1;

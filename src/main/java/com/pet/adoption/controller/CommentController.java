@@ -19,17 +19,34 @@ public class CommentController {
     @Autowired
     private CommentService commentService;
 
-    @Operation(summary = "添加评论", description = "用户为宠物添加评论")
+    @Operation(summary = "添加评论", description = "用户为宠物添加评论，需要登录")
     @PostMapping("/add")
     public Result add(@RequestBody CommentRequest request, HttpSession session) {
         return commentService.addComment(request, session);
     }
 
-    @Operation(summary = "获取宠物评论列表", description = "根据宠物ID获取该宠物的所有评论")
+    @Operation(summary = "获取宠物评论列表", description = "根据宠物ID获取该宠物的所有评论（分页）")
     @GetMapping("/list/{petId}")
-    public Result listByPet(@Parameter(description = "宠物ID", required = true) @PathVariable Integer petId) {
-        return commentService.getCommentsByPet(petId);
+    public Result listByPet(
+            @Parameter(description = "宠物ID", required = true) @PathVariable Integer petId,
+            @Parameter(description = "页码，从1开始") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int size) {
+        // 参数验证
+        if (page < 1) {
+            page = 1;
+        }
+        if (size < 1 || size > 50) {
+            size = 10; // 默认值，最大50
+        }
+        
+        return commentService.getCommentsByPet(petId, page, size);
     }
 
-    // 管理员删除评论接口在 AdminController 中
+    @Operation(summary = "删除评论", description = "用户只能删除自己的评论，管理员可以删除任意评论")
+    @DeleteMapping("/{commentId}")
+    public Result delete(
+            @Parameter(description = "评论ID", required = true) @PathVariable Integer commentId,
+            HttpSession session) {
+        return commentService.deleteComment(commentId, session);
+    }
 }

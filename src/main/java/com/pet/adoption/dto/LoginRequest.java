@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "用户登录请求")
 public class LoginRequest {
-    @Schema(description = "账号", requiredMode = Schema.RequiredMode.REQUIRED, example = "user123")
+    @Schema(description = "账号或手机号", requiredMode = Schema.RequiredMode.REQUIRED, example = "user123 或 13800138000")
     private String account;
     
     @Schema(description = "密码", requiredMode = Schema.RequiredMode.REQUIRED, example = "password123")

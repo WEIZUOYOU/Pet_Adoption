@@ -26,3 +26,18 @@ springdoc:
 # Swagger 启用/禁用开关（生产环境建议设置为 false）
 swagger:
   enabled: true
+
+# 文件上传配置
+app:
+  upload:
+    # 图片存储路径（开发环境使用项目目录，生产环境建议使用绝对路径）
+    path: ./uploads
+    # 访问URL前缀
+    url-prefix: /uploads
+
+# Spring Boot 文件上传限制
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB        # 单个文件最大大小
+      max-request-size: 20MB    # 请求总大小限制
