@@ -72,7 +72,7 @@ public class AdminController {
         if (size == null || size < 1 || size > 50) {
             size = 10; // 默认值，最大50
         }
-        
+
         Pageable pageable = PageRequest.of(page - 1, size);
         return petService.getAllPetsForAdmin(pageable);
     }
@@ -97,7 +97,7 @@ public class AdminController {
         if (size == null || size < 1 || size > 50) {
             size = 10;
         }
-        
+
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Adoption> adoptionPage = adoptionRepository.findAll(pageable);
         return Result.success(adoptionPage);
@@ -105,23 +105,23 @@ public class AdminController {
 
     @Operation(summary = "审核领养申请", description = "管理员审核领养申请（通过/驳回）")
     @PutMapping("/adoption/{id}")
-    public Result audit(@Parameter(description = "申请ID", required = true) @PathVariable Integer id, 
-                       @RequestBody Map<String, String> body) {
+    public Result audit(@Parameter(description = "申请ID", required = true) @PathVariable Integer id,
+                        @RequestBody Map<String, String> body) {
         Adoption adoption = adoptionRepository.findById(id).orElse(null);
         if (adoption == null) {
             return Result.error("申请不存在");
         }
-        
+
         // 检查是否已经审核过
         if ("通过".equals(adoption.getStatus()) || "驳回".equals(adoption.getStatus())) {
             return Result.error("该申请已经审核过，无法重复审核");
         }
-        
+
         String status = body.get("status");
         if (!"通过".equals(status) && !"驳回".equals(status)) {
             return Result.error("状态必须为'通过'或'驳回'");
         }
-        
+
         // 如果审核通过，需确保宠物未被领养
         if ("通过".equals(status)) {
             Pet pet = petRepository.findById(adoption.getPetId()).orElse(null);
@@ -135,21 +135,22 @@ public class AdminController {
             pet.setStatus("已领养");
             petRepository.save(pet);
         }
-        
+
         // 更新申请状态和审核时间
         adoption.setStatus(status);
         adoption.setAuditTime(new Date());
         adoptionRepository.save(adoption);
-        
+
         return Result.success("审核完成");
     }
 
     // ---------- 用户管理 ----------
-    @Operation(summary = "获取所有用户", description = "管理员查看所有用户信息")
-    @GetMapping("/users")
-    public Result allUsers() {
-        return Result.success(userRepository.findAll());
-    }
+    // 删除这个重复的方法 ↓↓↓
+    // @Operation(summary = "获取所有用户", description = "管理员查看所有用户信息")
+    // @GetMapping("/users")
+    // public Result allUsers() {
+    //     return Result.success(userRepository.findAll());
+    // }
 
     @Operation(summary = "禁用用户", description = "管理员禁用指定用户")
     @PutMapping("/user/{id}/ban")
@@ -171,7 +172,7 @@ public class AdminController {
         return Result.success("用户已启用");
     }
 
-    @Operation(summary = "获取所有用户列表")
+    @Operation(summary = "获取所有用户列表（分页）", description = "管理员查看所有用户信息（分页）")
     @GetMapping("/users")
     public Result listUsers(@RequestParam(defaultValue = "1") Integer page,
                             @RequestParam(defaultValue = "10") Integer size) {
@@ -180,8 +181,8 @@ public class AdminController {
 
     @Operation(summary = "禁用/启用用户")
     @PutMapping("/user/{userId}/status")
-    public Result updateUserStatus(@PathVariable Integer userId, 
-                                @RequestParam Integer status) {
+    public Result updateUserStatus(@PathVariable Integer userId,
+                                   @RequestParam Integer status) {
         return userService.updateUserStatus(userId, status);
     }
 
@@ -189,7 +190,7 @@ public class AdminController {
     @Operation(summary = "删除评论", description = "管理员删除指定评论")
     @DeleteMapping("/comment/{id}")
     public Result deleteComment(@Parameter(description = "评论ID", required = true) @PathVariable Integer id,
-                               javax.servlet.http.HttpSession session) {
+                                javax.servlet.http.HttpSession session) {
         return commentService.deleteComment(id, session);
     }
 
