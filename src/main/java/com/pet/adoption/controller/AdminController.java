@@ -2,15 +2,16 @@ package com.pet.adoption.controller;
 
 import com.pet.adoption.common.Result;
 import com.pet.adoption.entity.Adoption;
+import com.pet.adoption.entity.Comment;
 import com.pet.adoption.entity.Pet;
 import com.pet.adoption.entity.User;
 import com.pet.adoption.repository.AdoptionRepository;
+import com.pet.adoption.repository.CommentRepository;
 import com.pet.adoption.repository.PetRepository;
 import com.pet.adoption.repository.UserRepository;
 import com.pet.adoption.service.CommentService;
 import com.pet.adoption.service.PetService;
 import com.pet.adoption.service.UserService;
-import com.pet.adoption.service.impl.PetServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,6 +39,8 @@ public class AdminController {
     @Autowired
     private CommentService commentService;
     @Autowired
+    private CommentRepository commentRepository;
+    @Autowired
     private PetService petService;
     @Autowired
     private UserService userService;
@@ -49,8 +52,10 @@ public class AdminController {
         return petService.addPet(pet);
     }
 
+    // 【关键】只给 updatePet 接口单独加跨域注解
     @Operation(summary = "更新宠物信息", description = "管理员更新宠物信息")
     @PutMapping("/pet/update")
+    @CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"})
     public Result updatePet(@RequestBody Pet pet) {
         return petService.updatePet(pet);
     }
@@ -65,14 +70,12 @@ public class AdminController {
     @GetMapping("/pets")
     public Result getAllPets(@RequestParam(defaultValue = "1") Integer page,
                              @RequestParam(defaultValue = "10") Integer size) {
-        // 参数验证
         if (page == null || page < 1) {
             page = 1;
         }
         if (size == null || size < 1 || size > 50) {
-            size = 10; // 默认值，最大50
+            size = 10;
         }
-
         Pageable pageable = PageRequest.of(page - 1, size);
         return petService.getAllPetsForAdmin(pageable);
     }
@@ -90,14 +93,12 @@ public class AdminController {
     public Result allAdoptions(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
-        // 参数验证
         if (page == null || page < 1) {
             page = 1;
         }
         if (size == null || size < 1 || size > 50) {
             size = 10;
         }
-
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Adoption> adoptionPage = adoptionRepository.findAll(pageable);
         return Result.success(adoptionPage);
@@ -111,18 +112,13 @@ public class AdminController {
         if (adoption == null) {
             return Result.error("申请不存在");
         }
-
-        // 检查是否已经审核过
         if ("通过".equals(adoption.getStatus()) || "驳回".equals(adoption.getStatus())) {
             return Result.error("该申请已经审核过，无法重复审核");
         }
-
         String status = body.get("status");
         if (!"通过".equals(status) && !"驳回".equals(status)) {
             return Result.error("状态必须为'通过'或'驳回'");
         }
-
-        // 如果审核通过，需确保宠物未被领养
         if ("通过".equals(status)) {
             Pet pet = petRepository.findById(adoption.getPetId()).orElse(null);
             if (pet == null) {
@@ -131,27 +127,16 @@ public class AdminController {
             if (!"待领养".equals(pet.getStatus())) {
                 return Result.error("宠物状态已变更（当前：" + pet.getStatus() + "），无法通过审核");
             }
-            // 更新宠物状态为已领养
             pet.setStatus("已领养");
             petRepository.save(pet);
         }
-
-        // 更新申请状态和审核时间
         adoption.setStatus(status);
         adoption.setAuditTime(new Date());
         adoptionRepository.save(adoption);
-
         return Result.success("审核完成");
     }
 
     // ---------- 用户管理 ----------
-    // 删除这个重复的方法 ↓↓↓
-    // @Operation(summary = "获取所有用户", description = "管理员查看所有用户信息")
-    // @GetMapping("/users")
-    // public Result allUsers() {
-    //     return Result.success(userRepository.findAll());
-    // }
-
     @Operation(summary = "禁用用户", description = "管理员禁用指定用户")
     @PutMapping("/user/{id}/ban")
     public Result banUser(@Parameter(description = "用户ID", required = true) @PathVariable Integer id) {
@@ -187,18 +172,15 @@ public class AdminController {
     }
 
     // ---------- 评论管理 ----------
-    @Operation(summary = "删除评论", description = "管理员删除指定评论")
+    @Operation(summary = "管理员删除评论", description = "后台专用删除评论接口")
     @DeleteMapping("/comment/{id}")
-    public Result deleteComment(@Parameter(description = "评论ID", required = true) @PathVariable Integer id,
-                                javax.servlet.http.HttpSession session) {
-        return commentService.deleteComment(id, session);
+    public Result deleteComment(@Parameter(description = "评论ID", required = true) @PathVariable Long id) {
+        return commentService.adminDeleteComment(id);
     }
 
     @Operation(summary = "获取所有评论", description = "管理员查看所有评论")
     @GetMapping("/comments")
     public Result allComments() {
-        // 简单起见，直接返回所有评论，实际可查所有
-        // 此处不在CommentRepository定义findAll，直接注入JPA repository即可，省略。
-        return Result.success("获取成功"); // 按需完善
+        return commentService.listAllComment();
     }
 }

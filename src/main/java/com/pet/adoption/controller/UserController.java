@@ -49,4 +49,16 @@ public class UserController {
         // 返回用户信息（密码已为null）
         return Result.success(user);
     }
+    @Operation(summary = "查询所有用户")
+    @GetMapping("/list")
+    public Result listAllUser(){
+        // 不分页查询全部用户，传给前端用户管理页面
+        return userService.listAllUser();
+    }
+
+    @Operation(summary = "根据ID删除用户")
+    @DeleteMapping("/{id}")
+    public Result deleteUser(@PathVariable Integer id){
+        return userService.deleteUser(id);
+    }
 }

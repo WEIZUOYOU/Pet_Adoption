@@ -16,6 +16,8 @@ import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpSession;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -142,5 +144,23 @@ public class UserServiceImpl implements UserService {
         user.setStatus(status);
         userRepository.save(user);
         return Result.success("状态更新成功");
+    }
+
+    @Override
+    public Result listAllUser() {
+        List<User> userList = userRepository.findAll();
+        // 隐藏密码，保证安全
+        userList.forEach(u -> u.setPassword(null));
+        return Result.success(userList);
+    }
+
+    @Override
+    public Result deleteUser(Integer userId) {
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return Result.error("用户不存在");
+        }
+        userRepository.deleteById(userId);
+        return Result.success("删除成功");
     }
 }

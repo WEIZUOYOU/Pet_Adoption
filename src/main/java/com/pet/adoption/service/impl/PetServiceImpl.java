@@ -69,13 +69,32 @@ public class PetServiceImpl implements PetService {
 
     @Override
     public Result updatePet(Pet pet) {
-        if (!petRepository.existsById(pet.getId())) {
+        // 1. 校验ID
+        if (pet.getId() == null) {
+            return Result.error("宠物ID不能为空");
+        }
+        // 2. 查询原数据
+        Pet original = petRepository.findById(pet.getId()).orElse(null);
+        if (original == null) {
             return Result.error("宠物不存在");
         }
-        // 保留原发布时间（防止覆盖）
-        Pet original = petRepository.findById(pet.getId()).get();
-        pet.setAddTime(original.getAddTime());
-        petRepository.save(pet);
+
+        // 3. 只更新前端提交的字段，不影响原有字段
+        if (pet.getName() != null) {
+            original.setName(pet.getName());
+        }
+        if (pet.getSpecies() != null) {
+            original.setSpecies(pet.getSpecies());
+        }
+        if (pet.getAge() != null) {
+            original.setAge(pet.getAge());
+        }
+        if (pet.getStatus() != null) {
+            original.setStatus(pet.getStatus());
+        }
+
+        // 4. 保存更新后的对象
+        petRepository.save(original);
         return Result.success("更新成功");
     }
 

@@ -5,6 +5,7 @@ import com.pet.adoption.interceptor.LoginInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -32,13 +33,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // 登录拦截：需要登录才能访问的接口
         registry.addInterceptor(loginInterceptor())
-                .addPathPatterns("/api/adoption/**", 
-                                "/api/comment/**",
-                                "/api/user/current")   // 新增
-                .excludePathPatterns("/api/user/login", 
-                                    "/api/user/register", 
-                                    "/api/pet/**");
-        
+                .addPathPatterns("/api/adoption/**",
+                        "/api/comment/**",
+                        "/api/user/current")
+                .excludePathPatterns("/api/user/login",
+                        "/api/user/register",
+                        "/api/pet/**",
+                        "/api/comment/**");
+
         // 管理员权限拦截
         registry.addInterceptor(adminInterceptor())
                 .addPathPatterns("/api/admin/**");
@@ -46,10 +48,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射上传文件目录到 /uploads/** URL路径
+        // 保留原有 /uploads 映射（后台上传功能不受影响）
         String os = System.getProperty("os.name").toLowerCase();
         String path;
-        
+
         if (os.contains("win")) {
             // Windows系统：转换为绝对路径
             path = "file:" + new java.io.File(uploadPath).getAbsolutePath() + "/";
@@ -57,8 +59,23 @@ public class WebMvcConfig implements WebMvcConfigurer {
             // Linux/Mac系统
             path = "file:" + uploadPath + "/";
         }
-        
+
         registry.addResourceHandler(urlPrefix + "/**")
                 .addResourceLocations(path);
+
+        registry.addResourceHandler("/upload/**")
+                .addResourceLocations("classpath:/upload/");
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                // 允许你的前端地址
+                .allowedOrigins("http://127.0.0.1:5500", "http://localhost:5500")
+                // 必须包含 OPTIONS，否则预检请求会失败
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }

@@ -1,17 +1,18 @@
 package com.pet.adoption.controller;
 
 import com.pet.adoption.common.Result;
-import com.pet.adoption.dto.CommentRequest;
+import com.pet.adoption.entity.Comment;
 import com.pet.adoption.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-@Tag(name = "评论管理", description = "评论相关接口")
+@Tag(name = "评论接口")
 @RestController
 @RequestMapping("/api/comment")
 public class CommentController {
@@ -19,34 +20,72 @@ public class CommentController {
     @Autowired
     private CommentService commentService;
 
-    @Operation(summary = "添加评论", description = "用户为宠物添加评论，需要登录")
+    /**
+     * 1. 获取评论列表 GET /api/comment/list?petId=xxx
+     */
+    @GetMapping("/list")
+    public Map<String, Object> getCommentList(@RequestParam Long petId) {
+        Map<String, Object> result = new HashMap<>();
+        List<Comment> list = commentService.getCommentsByPetId(petId);
+        result.put("code", 200);
+        result.put("data", list);
+        return result;
+    }
+
+    /**
+     * 2. 发布评论 POST /api/comment/add
+     */
     @PostMapping("/add")
-    public Result add(@RequestBody CommentRequest request, HttpSession session) {
-        return commentService.addComment(request, session);
+    public Map<String, Object> addComment(@RequestBody Comment comment) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 日志打印，方便定位问题
+        System.out.println("收到评论请求：petId=" + comment.getPetId() + ", content=" + comment.getContent());
+
+        // 必填字段校验
+        if (comment.getPetId() == null || comment.getContent() == null || comment.getContent().trim().isEmpty()) {
+            result.put("code", 400);
+            result.put("msg", "宠物ID和评论内容不能为空");
+            return result;
+        }
+
+        // 写死昵称，后续对接登录可以改成当前用户
+        comment.setNickname("游客");
+        Comment saved = commentService.addComment(comment);
+
+        System.out.println("评论保存成功：id=" + saved.getId());
+
+        result.put("code", 200);
+        result.put("data", saved);
+        return result;
     }
 
-    @Operation(summary = "获取宠物评论列表", description = "根据宠物ID获取该宠物的所有评论（分页）")
-    @GetMapping("/list/{petId}")
-    public Result listByPet(
-            @Parameter(description = "宠物ID", required = true) @PathVariable Integer petId,
-            @Parameter(description = "页码，从1开始") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int size) {
-        // 参数验证
-        if (page < 1) {
-            page = 1;
-        }
-        if (size < 1 || size > 50) {
-            size = 10; // 默认值，最大50
-        }
-        
-        return commentService.getCommentsByPet(petId, page, size);
+    /**
+     * 3. 点赞评论 POST /api/comment/like
+     */
+    @PostMapping("/like")
+    public Map<String, Object> likeComment(@RequestBody Map<String, Long> param) {
+        Map<String, Object> result = new HashMap<>();
+        Long id = param.get("id");
+        commentService.likeComment(id);
+        result.put("code", 200);
+        result.put("msg", "点赞成功");
+        return result;
     }
 
-    @Operation(summary = "删除评论", description = "用户只能删除自己的评论，管理员可以删除任意评论")
-    @DeleteMapping("/{commentId}")
-    public Result delete(
-            @Parameter(description = "评论ID", required = true) @PathVariable Integer commentId,
-            HttpSession session) {
-        return commentService.deleteComment(commentId, session);
+    // ====================== 后台管理接口 开始 ======================
+
+    @Operation(summary = "查询所有评论（后台管理）")
+    @GetMapping("/listAll")
+    public Result listAllComment(){
+        return commentService.listAllComment();
     }
+
+    @Operation(summary = "删除评论（后台管理）")
+    @DeleteMapping("/admin/{id}")
+    public Result adminDeleteComment(@PathVariable Long id){
+        return commentService.adminDeleteComment(id);
+    }
+
+    // ====================== 后台管理接口 结束 ======================
 }

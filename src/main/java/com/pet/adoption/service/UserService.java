@@ -11,4 +11,6 @@ public interface UserService {
     Result logout(HttpSession session);
     Result listUsers(Integer page, Integer size);
     Result updateUserStatus(Integer userId, Integer status);
+    Result listAllUser();
+    Result deleteUser(Integer userId);
 }
